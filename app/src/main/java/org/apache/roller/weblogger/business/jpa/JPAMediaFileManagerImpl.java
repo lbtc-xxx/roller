@@ -229,7 +229,9 @@ public class JPAMediaFileManagerImpl implements MediaFileManager {
                     mediaFile.getId());
             BufferedImage img;
 
-            img = ImageIO.read(fc.getInputStream());
+            try (InputStream is = fc.getInputStream()) {
+                img = ImageIO.read(is);
+            }
 
             // determine and save width and height
             mediaFile.setWidth(img.getWidth());
