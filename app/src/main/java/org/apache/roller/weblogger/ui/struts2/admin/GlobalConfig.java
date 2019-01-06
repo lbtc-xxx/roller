@@ -22,7 +22,11 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.function.Supplier;
 import javax.servlet.http.HttpServletRequest;
+
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -153,16 +157,42 @@ public class GlobalConfig extends UIAction implements ParameterAware, ServletReq
             return ERROR;
         }
         
-        // only set values for properties that are already defined
-        RuntimeConfigProperty updProp;
-        String incomingProp;
-        for (String propName : getProperties().keySet()) {
-            updProp = getProperties().get(propName);
-            incomingProp = this.getParameter(updProp.getName());
+        updateProperties(getProperties(), this::getParameter, this::getCommentPlugins);
             
+        try {
+            // save 'em and flush
+            PropertiesManager mgr = WebloggerFactory.getWeblogger().getPropertiesManager();
+            mgr.saveProperties(getProperties());
+            WebloggerFactory.getWeblogger().flush();
+            
+            // notify user of our success
+            addMessage("generic.changes.saved");
+            
+        } catch (WebloggerException ex) {
+            log.error("Error saving roller properties", ex);
+            addError("generic.error.check.logs");
+        }
+                
+        return SUCCESS;
+    }
+
+    @VisibleForTesting static void updateProperties(
+            Map<String, RuntimeConfigProperty> props,
+            Function<String, String> getParameter,
+            Supplier<String[]> getCommentPlugins) {
+        updatePropertiesBasedOnRequestParameters(props.values(), getParameter);
+        handleCommentPlugins(props, getCommentPlugins);
+    }
+
+    private static void updatePropertiesBasedOnRequestParameters(
+            Iterable<RuntimeConfigProperty> props, Function<String, String> getParameter) {
+        for (RuntimeConfigProperty updProp : props) {
+            String propName = updProp.getName();
+            String incomingProp = getParameter.apply(updProp.getName());
+
             log.debug("Checking property ["+propName+"]");
             log.debug("Request value is ["+incomingProp+"]");
-            
+
             // some special treatment for booleans
             // this is a bit hacky since we are assuming that any prop
             // with a value of "true" or "false" is meant to be a boolean
@@ -183,38 +213,25 @@ public class GlobalConfig extends UIAction implements ParameterAware, ServletReq
             // only work on props that were submitted with the request
             if(incomingProp != null) {
                 log.debug("Setting new value for ["+propName+"]");
-                
+
                 // NOTE: the old way had some locale sensitive way to do this??
                 updProp.setValue(incomingProp.trim());
             }
         }
-        
+    }
+
+    private static void handleCommentPlugins(
+            Map<String, RuntimeConfigProperty> props, Supplier<String[]> getCommentPlugins) {
         // special handling for comment plugins
         String enabledPlugins = "";
-        if(getCommentPlugins().length > 0) {
-            enabledPlugins = StringUtils.join(getCommentPlugins(), ",");
+        if(getCommentPlugins.get().length > 0) {
+            enabledPlugins = StringUtils.join(getCommentPlugins.get(), ",");
         }
-        RuntimeConfigProperty prop = getProperties().get("users.comments.plugins");
+        RuntimeConfigProperty prop = props.get("users.comments.plugins");
         prop.setValue(enabledPlugins);
-            
-        try {
-            // save 'em and flush
-            PropertiesManager mgr = WebloggerFactory.getWeblogger().getPropertiesManager();
-            mgr.saveProperties(getProperties());
-            WebloggerFactory.getWeblogger().flush();
-            
-            // notify user of our success
-            addMessage("generic.changes.saved");
-            
-        } catch (WebloggerException ex) {
-            log.error("Error saving roller properties", ex);
-            addError("generic.error.check.logs");
-        }
-                
-        return SUCCESS;
     }
-    
-    
+
+
     public void setParameters(Map<String, String[]> parameters) {
         this.params = parameters;
         
