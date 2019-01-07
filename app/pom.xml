@@ -54,7 +54,7 @@ limitations under the License.
         <rome.version>1.7.4</rome.version>
         <servlet.version>3.0.1</servlet.version>
         <slf4j.version>1.7.25</slf4j.version>
-        <spring.version>4.1.4.RELEASE</spring.version>
+        <spring.version>4.3.13.RELEASE</spring.version>
         <spring.security.version>3.2.5.RELEASE</spring.security.version>
         <struts.version>2.5.17</struts.version>
         <velocity.version>1.7</velocity.version>
@@ -169,12 +169,6 @@ limitations under the License.
         <dependency>
             <groupId>org.apache.struts</groupId>
             <artifactId>struts2-core</artifactId>
-            <version>${struts.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.apache.struts</groupId>
-            <artifactId>struts2-spring-plugin</artifactId>
             <version>${struts.version}</version>
         </dependency>
 
@@ -418,6 +412,14 @@ limitations under the License.
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
             <version>2.23.4</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- https://mvnrepository.com/artifact/org.apache.struts/struts2-junit-plugin -->
+        <dependency>
+            <groupId>org.apache.struts</groupId>
+            <artifactId>struts2-junit-plugin</artifactId>
+            <version>${struts.version}</version>
             <scope>test</scope>
         </dependency>
 
